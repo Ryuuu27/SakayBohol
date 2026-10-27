@@ -1,0 +1,6 @@
+{
+  "name": "Sakay Bohol",
+  "description": "Mobile-ready Bohol tourist transit guide with live map navigation, jeepney schedules, tricycle fare estimates, offline access, currency converter, Cebuano phrasebook, and emergency contacts.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
