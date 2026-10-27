@@ -31,6 +31,7 @@ interface PlaceSearchInputProps {
   onSelectPlace: (place: ResolvedGooglePlace) => void;
   resolvedHubs: Record<string, ResolvedGooglePlace>;
   isOnline: boolean;
+  hasMapsApiKey?: boolean;
   userLocation: LiveUserLocation | null;
   onRequestLiveGps?: () => void;
 }
@@ -42,6 +43,7 @@ export const PlaceSearchInput: React.FC<PlaceSearchInputProps> = ({
   onSelectPlace,
   resolvedHubs,
   isOnline,
+  hasMapsApiKey = true,
   userLocation,
   onRequestLiveGps,
 }) => {
@@ -302,10 +304,12 @@ export const PlaceSearchInput: React.FC<PlaceSearchInputProps> = ({
           )}
 
           {filteredHubs.length === 0 && suggestions.length === 0 && !isSearching && (
-            <div className="px-3 py-3 text-xs text-slate-500">
-              {isOnline
-                ? 'Type at least 2 characters to search any Bohol address, resort, or terminal.'
-                : 'Offline mode active — connect briefly to resolve new Bohol places.'}
+            <div className="px-3 py-3 text-xs text-slate-500 leading-relaxed">
+              {!hasMapsApiKey
+                ? 'Configure VITE_GOOGLE_MAPS_API_KEY in your hosting environment variables to search live Bohol places, or use Schedules & Fares.'
+                : isOnline
+                  ? 'Type at least 2 characters to search any Bohol address, resort, or terminal.'
+                  : 'Offline mode active — connect briefly to resolve new Bohol places.'}
             </div>
           )}
         </div>

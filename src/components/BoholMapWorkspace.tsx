@@ -8,6 +8,7 @@ import {
   useMapsLibrary,
 } from '@vis.gl/react-google-maps';
 import {
+  ArrowRight,
   ArrowUpDown,
   BookmarkCheck,
   Compass,
@@ -281,6 +282,8 @@ const MapServicesController: React.FC<
 };
 
 interface BoholMapWorkspaceProps {
+  hasMapsApiKey: boolean;
+  onOpenSchedulesTab: () => void;
   resolvedHubs: Record<string, ResolvedGooglePlace>;
   onHubsUpdated: (hubs: Record<string, ResolvedGooglePlace>) => void;
   savedRoutes: SavedOfflineRoute[];
@@ -300,6 +303,8 @@ interface BoholMapWorkspaceProps {
 }
 
 export const BoholMapWorkspace: React.FC<BoholMapWorkspaceProps> = ({
+  hasMapsApiKey,
+  onOpenSchedulesTab,
   resolvedHubs,
   onHubsUpdated,
   savedRoutes,
@@ -342,15 +347,16 @@ export const BoholMapWorkspace: React.FC<BoholMapWorkspaceProps> = ({
     }
   }, [resolvedHubs, selectedOrigin, selectedDestination, onSelectOrigin, onSelectDestination]);
 
-  // Offline route lookup if network drops or live route fails
+  // Offline or unconfigured-key route lookup if network drops or live Maps SDK is unavailable
   useEffect(() => {
     if (!selectedOrigin || !selectedDestination) return;
     const matchId = `${selectedOrigin.placeId}__${selectedDestination.placeId}`;
     const cached = savedRoutes.find((r) => r.id === matchId);
-    if (!isOnline && cached) {
+    const liveMapsUnavailable = !isOnline || !hasMapsApiKey;
+    if (liveMapsUnavailable && cached) {
       setActiveRoute(cached);
       setRouteError(null);
-    } else if (!isOnline && !cached) {
+    } else if (liveMapsUnavailable && !cached) {
       // Fallback approximate road distance (1.28x Haversine winding factor for Bohol roads)
       const straightMeters = computeHaversineMeters(
         {lat: selectedOrigin.lat, lng: selectedOrigin.lng},
@@ -377,7 +383,7 @@ export const BoholMapWorkspace: React.FC<BoholMapWorkspaceProps> = ({
         cachedAt: Date.now(),
       });
     }
-  }, [isOnline, selectedOrigin, selectedDestination, savedRoutes]);
+  }, [isOnline, hasMapsApiKey, selectedOrigin, selectedDestination, savedRoutes]);
 
   const handleRouteComputed = useCallback(
     (computed: SavedOfflineRoute) => {
@@ -514,6 +520,7 @@ export const BoholMapWorkspace: React.FC<BoholMapWorkspaceProps> = ({
                 onSelectPlace={(p) => onSelectOrigin(p)}
                 resolvedHubs={resolvedHubs}
                 isOnline={isOnline}
+                hasMapsApiKey={hasMapsApiKey}
                 userLocation={userLocation}
                 onRequestLiveGps={onStartGps}
               />
@@ -539,6 +546,7 @@ export const BoholMapWorkspace: React.FC<BoholMapWorkspaceProps> = ({
                 onSelectPlace={(p) => onSelectDestination(p)}
                 resolvedHubs={resolvedHubs}
                 isOnline={isOnline}
+                hasMapsApiKey={hasMapsApiKey}
                 userLocation={userLocation}
               />
             </div>
@@ -814,7 +822,7 @@ export const BoholMapWorkspace: React.FC<BoholMapWorkspaceProps> = ({
         {/* Right Column: Interactive Mobile-Optimized Map Canvas (or Offline Schematic) */}
         <div className="lg:col-span-7 order-1 lg:order-2">
           <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 h-[390px] sm:h-[480px] lg:h-[680px]">
-            {isOnline ? (
+            {isOnline && hasMapsApiKey ? (
               <>
                 <Map
                   mapId="DEMO_MAP_ID"
@@ -982,6 +990,73 @@ export const BoholMapWorkspace: React.FC<BoholMapWorkspaceProps> = ({
                   </button>
                 </div>
               </>
+            ) : isOnline && !hasMapsApiKey ? (
+              /* Deployment Without VITE_GOOGLE_MAPS_API_KEY Fallback */
+              <div className="flex h-full w-full flex-col justify-between bg-slate-900 p-6 text-white">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-xs font-medium text-teal-300">
+                      Interactive Map Configuration
+                    </div>
+                    <h2 className="mt-1 text-lg sm:text-xl font-semibold">
+                      Add Google Maps Key in Hosting Settings
+                    </h2>
+                    <p className="mt-2 max-w-lg text-xs sm:text-sm text-slate-300 leading-relaxed">
+                      To display live Bohol road tiles, place search, and route polylines on an
+                      external deployment (such as Vercel), add{' '}
+                      <code className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-teal-300">
+                        VITE_GOOGLE_MAPS_API_KEY
+                      </code>{' '}
+                      under Project Settings → Environment Variables and trigger a redeploy.
+                    </p>
+                  </div>
+                  <Compass className="h-6 w-6 text-teal-400 shrink-0" />
+                </div>
+
+                <div className="my-4 rounded-xl border border-slate-800 bg-slate-950/60 p-4 text-xs text-slate-300 space-y-2">
+                  <div className="font-semibold text-white">
+                    Available right now without map tiles:
+                  </div>
+                  <p className="leading-relaxed">
+                    Jeepney &amp; Southern Star bus timetables, interactive distance fare
+                    calculator, offline Cebuano/Boholano voice phrasebook, PHP currency converter,
+                    live device GPS coordinates, and Bohol 24/7 Emergency SOS hotlines.
+                  </p>
+                  <div className="pt-2 flex flex-wrap gap-2.5">
+                    <button
+                      type="button"
+                      onClick={onOpenSchedulesTab}
+                      className="min-h-[44px] inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white hover:bg-teal-500 transition-colors"
+                    >
+                      <span>Open Schedules &amp; Fare Calculator</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLocateButton}
+                      className="min-h-[44px] inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800 transition-colors"
+                    >
+                      <LocateFixed className="h-3.5 w-3.5 text-teal-400" />
+                      <span>
+                        {userLocation
+                          ? `GPS Ready (${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)})`
+                          : 'Test Live Device GPS'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-3 text-xs text-slate-400">
+                  <span>
+                    Enable Maps JavaScript API · Places API (New) · Routes API
+                  </span>
+                  {userLocation && (
+                    <span className="font-mono tabular-nums text-teal-300">
+                      GPS: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
+                    </span>
+                  )}
+                </div>
+              </div>
             ) : (
               /* Offline Cached Route & GPS Compass Navigator */
               <div className="flex h-full w-full flex-col justify-between bg-slate-900 p-5 text-white">

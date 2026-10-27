@@ -25,7 +25,7 @@ import {AppTab, ResolvedGooglePlace, SavedOfflineRoute} from './types/transit';
 import {loadCachedHubs, loadSavedOfflineRoutes} from './utils/offlineStorage';
 
 const GOOGLE_MAPS_API_KEY =
-  (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined) ?? '';
+  (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined)?.trim() ?? '';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.MAP);
@@ -215,6 +215,8 @@ export default function App() {
       <main className="flex-1">
         {activeTab === AppTab.MAP && (
           <BoholMapWorkspace
+            hasMapsApiKey={Boolean(GOOGLE_MAPS_API_KEY)}
+            onOpenSchedulesTab={() => setActiveTab(AppTab.SCHEDULES)}
             resolvedHubs={resolvedHubs}
             onHubsUpdated={setResolvedHubs}
             savedRoutes={savedRoutes}
